@@ -1,0 +1,12 @@
+#!/bin/bash
+# Input: 
+# %env.SkipTesting% : skip build/jira actions when needed											|| false
+
+# skip any action if true
+if [[ %env.SkipTesting% = 'true' ]]
+then
+    exit 0
+fi
+
+export PATH="$PATH:/Library/Frameworks/Mono.framework/Versions/Current/Commands"
+nuget restore %teamcity.build.checkoutDir%/%env.SolutionName% -PackagesDirectory %teamcity.build.checkoutDir%/packages

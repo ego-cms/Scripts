@@ -1,0 +1,11 @@
+#!/bin/bash
+# Input: 
+# %env.SkipTesting% : skip build/jira actions when needed											|| false
+
+# skip any action if true
+if [[ %env.SkipTesting% = 'true' ]]
+then
+    exit 0
+fi
+
+find %teamcity.build.checkoutDir% -type d \( -name bin -o -name obj \) -exec rm -rf {} +

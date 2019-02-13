@@ -1,0 +1,72 @@
+#!/bin/bash
+# Input: 
+# %env.TestingTagSearchPattern% : regex pattern for searching ticket tag 							|| \[T\]
+# Output:
+# %env.SkipTesting% : skip build/jira actions when needed											|| false
+
+MarkerNotFound () {
+	echo "Testing tag not found. Abort testing"
+	# setting global variable to true, means that next build steps should act appropriately
+	echo "##teamcity[setParameter name='env.SkipTesting' value='true']"	
+	exit 0
+}
+
+GetLastNotMergeCommit(){
+	# Get parent commit
+	parent=$(git show --no-patch --format="%P" $1)
+	IFS=' ' read -ra ADDR <<< "$parent"
+	# If there re 2 commits, that's mean that it's merge commit
+	# In this case we need to find last commit before branch was merged
+	if [[ "${#ADDR[@]}" >1 ]]
+	then	
+		# Getting commit that already was in branch
+		commits=$(git log -2 --first-parent --pretty=format:"%H")
+		firstParent="$(echo $commits | cut -d' ' -f2)"
+		# Checking which commit is new, than it's merged commit
+		if [[ $firstParent = ${ADDR[1]} ]]
+		then
+			echo ${ADDR[0]}
+		else
+			echo ${ADDR[1]}
+		fi
+
+	else
+		echo $1
+	fi
+}
+
+CheckIsMergeCommit(){
+	# Get parent commit
+	parent=$(git show --no-patch --format="%P" $(git rev-parse HEAD))
+	IFS=' ' read -ra ADDR <<< "$parent"
+	# If there are 2 commits, that's mean that it's merge commit
+	# In this case we need to find last commit before branch was merged
+	if [[ "${#ADDR[@]}" >1 ]]
+	then
+		echo "Is merge commit"
+		# setting global variable to true, merge commits has slightly different ticket transition
+		echo "##teamcity[setParameter name='env.IsMergeCommit' value='true']"	
+	else
+		echo "Is not merge commit"
+	fi
+}
+
+GetTestingTag() {
+	head=$(git rev-parse HEAD)
+	commit=$(GetLastNotMergeCommit $head)
+	# getting commit which has testing tag
+	echo $(git log --format=%s -n 1 $commit | egrep -o '%env.TestingTagSearchPattern%')
+}
+
+CheckIsMergeCommit
+c=$(GetTestingTag)
+echo Ticket markers - $c
+# check for multiple ticket markers
+foundMarkers=($(echo $c | sed "s/\(%env.TestingTagSearchPattern%\)/\1|/g" | tr '|' "\n"))
+
+if [[ $c = '' ]]
+then
+    MarkerNotFound
+else
+    exit 0
+fi

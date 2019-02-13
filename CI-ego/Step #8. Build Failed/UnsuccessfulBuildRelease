@@ -1,0 +1,67 @@
+#!/bin/bash
+# Variables:
+# %env.JiraUrl% : url path for jira  
+# %env.JiraBotMailAddress% : email address for user which will interact with jira  
+# %env.JiraBotApiToken% : api token for user which will interact with jira 
+# %env.BuildServerUrl% : Build server's url  
+# %teamcity.build.id% : build id
+# %env.IsBuildFailed% : contains info if build was failed or succeed
+# %env.TicketNumber% : Ticket number of build
+# %env.SkipTesting% : skip build/jira actions when needed												|| false
+
+AddCommentToJira () {
+	# send rest call for adding comment to jira ticket
+	result=$(curl --request POST --url '%env.JiraUrl%/rest/api/3/issue/'"$1"'/comment' --user '%env.JiraBotMailAddress%:%env.JiraBotApiToken%' --header 'Accept: application/json' --header 'Content-Type: application/json' --data '{
+	  "body": {
+	    "type": "doc",
+	    "version": 1,
+	    "content": [
+	      {
+	        "type": "paragraph",
+	        "content": [
+	          {
+	            "type": "text",
+	            "text": "'"$2"'"
+	          }
+	        ]
+	      }
+	    ]
+	  }
+	}')
+
+	prop='errorMessages'
+	# parsing any json error
+	errorMessage=`echo $result | sed 's/\\\\\//\//g' | sed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' | sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w $prop | cut -d":" -f2 | sed -e 's/^ *//g' -e 's/ *$//g'`
+	if [[ $errorMessage = '' ]]
+	then
+	    echo "Comment to $1 added"
+	else
+	    echo "Adding comment to $1 failed.
+ErrorMessage:" $errorMessage
+	fi
+}
+
+ProceedMarker () {
+	declare -a argAry1=("${!1}")
+	# add jira comment for each parsed ticket number
+	for i in "${argAry1[@]}"
+	do
+		AddCommentToJira $i "Build failed. Build log: "%env.BuildServerUrl%"/viewLog.html?buildId="%teamcity.build.id%"."
+	done
+}
+
+# skip any action if true
+if [[ %env.SkipTesting% = 'true' ]]
+then
+    exit 0
+fi
+
+# skip any action if build failed
+if [[ %env.IsBuildFailed% = 'true' ]]
+then
+    foundMarkers=(%env.TicketNumber%)
+	ProceedMarker foundMarkers[@]
+	exit 1
+else
+    exit 0
+fi
