@@ -3,7 +3,7 @@
 # %env.JiraUrl% : url path for jira  
 # %env.JiraBotMailAddress% : email address for user which will interact with jira  
 # %env.JiraBotApiToken% : api token for user which will interact with jira 
-# %env.BuildServerUrl% : Build server's url  
+# %env.BuildServerUrl% : Build server's url
 # %teamcity.build.id% : build id
 # %env.IsBuildFailed% : contains info if build was failed or succeed
 # %env.TicketNumber% : Ticket number of build

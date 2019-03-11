@@ -1,0 +1,35 @@
+#!/bin/bash
+# Input:
+# %env.ReleaseMinorPattern%: regexp for finding if release is minor 								| release-minor
+# %env.ReleaseMajorPattern%: regexp for finding if release is major 								| release-major
+# Output:
+# %env.IsMajorRelease%: type of release is major
+# %env.IsMinorRelease%: type of release is minor
+# %env.SkipRelease%: skip release process
+
+
+tag=$(git describe --abbrev=0)
+echo Tag - $tag
+
+# check if git tag has %env.ReleaseMinorPattern% 
+isMinorRelease=$(echo $tag | egrep -o "%env.ReleaseMinorPattern%")
+# check if git tag has %env.IsMajorRelease% 
+isMajorRelease=$(echo $tag | egrep -o "%env.ReleaseMajorPattern%")
+
+if [[ $isMinorRelease = '' ]] && [[ $isMajorRelease = '' ]]
+then
+	echo "Tag have wrong formatting"
+	echo "##teamcity[setParameter name='env.SkipRelease' value='true']"	
+	exit 0
+fi
+
+if [[ $isMinorRelease = '' ]]
+then
+	echo 'Major release'
+	# set %env.IsMajorRelease% variable
+	echo "##teamcity[setParameter name='env.IsMajorRelease' value='true']"	
+else
+	echo 'Minor release'
+	# set %env.IsMinorRelease% variable
+	echo "##teamcity[setParameter name='env.IsMinorRelease' value='true']"	
+fi

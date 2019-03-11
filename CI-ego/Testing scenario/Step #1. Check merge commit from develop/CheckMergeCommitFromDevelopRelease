@@ -1,0 +1,59 @@
+#!/bin/bash
+# Input: 
+# %env.DevelopBranchName% : develop branch for project 												| origin/develop
+# Output
+# %env.SkipTesting% : skip build/jira actions when needed											| false
+
+GetBranchName () {
+	head=$(git rev-parse HEAD)
+	echo $head
+	branchName=$(git branch -r --contains $head)
+
+	#get branches that points to the head
+	branches=($(echo $branchName | grep -Eo 'origin/[A-Za-z0-9_-]+'))
+}
+
+CheckIsMergeCommit(){
+	# Get parent commit
+	parent=$(git show --no-patch --format="%P" $(git rev-parse HEAD))
+	IFS=' ' read -ra ADDR <<< "$parent"
+	# If there are 2 commits, that's mean that it's merge commit
+	# In this case we need to find last commit before branch was merged
+	if [[ "${#ADDR[@]}" >1 ]]
+	then
+		echo "Is merge commit"
+		IsMergeCommit=true
+	else
+		echo "Is not merge commit"
+		IsMergeCommit=false
+	fi
+}
+
+containsElement () {
+  local e match="$1"
+  shift
+  for e; do [[ "$e" == "$match" ]] && return 0; done
+  return 1
+}
+
+
+CheckIsMergeCommit
+GetBranchName
+
+echo "${branches[@]}"
+
+containsElement "%env.DevelopBranchName%" "${branches[@]}"
+result=$?
+
+
+# Need to skip build in case merge commit, and if target branch NOT develop
+# So in case when develop was merged into current development branch, ci process won't get started
+if [[ $IsMergeCommit = 'true' &&  $result = 1 ]]
+then
+	echo 'Skip build'
+	# setting global variable to true, means that next build steps should act appropriately
+	echo "##teamcity[setParameter name='env.SkipTesting' value='true']"	
+else
+	echo 'Process build'
+fi
+

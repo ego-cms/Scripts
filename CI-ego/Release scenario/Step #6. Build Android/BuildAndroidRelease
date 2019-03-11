@@ -1,13 +1,12 @@
 #!/bin/bash
-# Input: 
-# %env.SkipTesting% : skip build/jira actions when needed											|| false
-# %env.DroidPath% : Path to android project
 # Output:
 # %env.IsBuildFailed%
+# %env.SkipRelease%: skip release process
 
 # skip any action if true
-if [[ %env.SkipTesting% = 'true' ]]
+if [[ %env.SkipRelease% = 'true' ]]
 then
+	echo 'No release tag found, skip step'
     exit 0
 fi
 

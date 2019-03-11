@@ -1,7 +1,8 @@
 #!/bin/bash
 # Input: 
 # %env.TestingTagSearchPattern% : regex pattern for searching ticket tag 							|| \[T\]
-# Output:
+# %env.SkipTesting% : skip build/jira actions when needed											| false
+# Output
 # %env.SkipTesting% : skip build/jira actions when needed											|| false
 
 MarkerNotFound () {
@@ -57,6 +58,13 @@ GetTestingTag() {
 	# getting commit which has testing tag
 	echo $(git log --format=%s -n 1 $commit | egrep -o '%env.TestingTagSearchPattern%')
 }
+
+# skip any action if true
+if [[ %env.SkipTesting% = 'true' ]]
+then
+	echo 'Test process has been skipped by previous steps'
+    exit 0
+fi
 
 CheckIsMergeCommit
 c=$(GetTestingTag)

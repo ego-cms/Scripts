@@ -7,8 +7,7 @@
 # %env.BuildServerUrl% : Build server's url 															|| http://test.ego-cms.com:8111
 # %system.teamcity.buildType.id% : Build type id 														||
 # %teamcity.build.id% : build IsBuildFailed																||
-# %env.ApkName% : apk name																				|| com.egocms.tmtest.MyTestProject-Signed.apk
-# %env.IpaName% : ipa name 																				|| MyTestProject.iOS.ipa
+# %env.ApkName% : apk name (com.egocms.tmtest.MyTestProject-Signed.apk)									|| com.egocms.tmtest.MyTestProject-Signed.apk
 # %env.IsBuildFailed% : contains info if build was failed or succeed									||
 # %env.TicketNumber% : Ticket number of build 															||
 # %env.ProceedTransition% : id of transition for moving to column										|| 101
@@ -125,20 +124,32 @@ ProceedMarker () {
 		AddCommentToJira $i "$commentText"
 		AssignToReviewer $i
 
-		# If merge commit moving to merge collumn, otherwise to qa
-		if [[ %env.IsMergeCommit% = 'true' ]]
-		then
-		     MakeTransition $i "%env.MergeTransition%"
-		else
-		     MakeTransition $i "%env.ProceedTransition%"
-		fi
+		GetTransition
+		MakeTransition $i $transition
 	
 	done
+}
+
+GetTransition() {
+	# If merge commit moving to merge collumn, otherwise to qa
+	if [[ %env.IsMergeCommit% = 'true' ]]
+	then
+	     transition="%env.MergeTransition%"
+	else
+	     transition="%env.ProceedTransition%"
+	fi
+
+	# If branch is develop - do merge transition
+	if [[ %env.BranchName% = %env.DevelopBranchName% ]]
+	then
+	     transition="%env.MergeTransition%"
+	fi
 }
 
 # skip any action if true
 if [[ %env.SkipTesting% = 'true' ]]
 then
+	echo 'Test process has been skipped by previous steps'
     exit 0
 fi
 

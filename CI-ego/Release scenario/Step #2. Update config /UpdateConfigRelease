@@ -1,0 +1,57 @@
+#!/bin/bash
+# Input:
+# %env.IsMajorRelease%: type of release is major
+# %env.IsMinorRelease%: type of release is minor
+# %env.MajorVersionText%: name for major version js tag										| version_major 
+# %env.MinorVersionText%: name for minor version js tag										| version_minor
+# %env.MajorVersionPattern%: regexp pattern for major version js value						| [.0-9]*
+# %env.MinorVersionPattern%: regexp pattern for minor version js value						| [.0-9]*
+# %env.BuildConfigFilename%: name of file with version values								| build.config
+# %env.SkipRelease%: skip release process
+
+UpdateVersionMajor(){
+	# find current version number in file
+	versionMajor=$(sed -n "s/\"%env.MajorVersionText%\":\"\(%env.MajorVersionPattern%\)\",*/\1/p" %env.BuildConfigFilename% | sed -n 's/^ *//p')
+	# increment
+	versionMajorNew=$((versionMajor+1))
+	# substitute line in file to the new one
+	sed -i '' "s/\"%env.MajorVersionText%\":\"$versionMajor\",*/\"%env.MajorVersionText%\":\"$versionMajorNew\"/g" %env.BuildConfigFilename%
+}
+
+UpdateVersionMinor(){
+	# find current version number in file
+	versionMinor=$(sed -n "s/\"%env.MinorVersionText%\":\"\(%env.MinorVersionPattern%\)\",*/\1/p" %env.BuildConfigFilename% | sed -n 's/^ *//p')
+	# when true it means the major release. Drops minor version to 0
+	if [[ $1 = 'true' ]]
+	then
+	    versionMinorNew=0
+	else
+		versionMinorNew=$((versionMinor+1))
+	fi
+	# substitute line in file to the new one
+	sed -i '' "s/\"%env.MinorVersionText%\":\"$versionMinor\",*/\"%env.MinorVersionText%\":\"$versionMinorNew\"/g" %env.BuildConfigFilename%
+}
+
+# skip any action if true
+if [[ %env.SkipRelease% = 'true' ]]
+then
+	echo 'Release process has been skipped in previous steps.'
+    exit 0
+fi
+
+
+isMajorRelease=%env.IsMajorRelease%
+isMinorRelease=%env.IsMinorRelease%
+
+
+if [[ $isMajorRelease = 'true' ]]
+then
+	UpdateVersionMajor
+	# drops minor cersion to 0
+	UpdateVersionMinor 'true'
+fi
+
+if [[ $isMinorRelease = 'true' ]]
+then
+	UpdateVersionMinor
+fi

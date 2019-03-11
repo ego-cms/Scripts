@@ -1,0 +1,111 @@
+#!/bin/bash
+# Input:
+# %env.AppVersion%: new app version number
+# %env.DefaultReleaseBranchName%: new app version number									| origin/develop
+# %env.SkipRelease%: skip release process
+# %env.LocalMasterBranchName%: local master branch name  									| master
+# %env.RepositorySSHAddress%: ssh address of remote repository
+
+
+GetBranches(){
+	#get branch name
+	head=$(git rev-parse HEAD)
+	branchName=$(git branch -r --contains $head)
+	echo Branch name - $branchName
+
+	#get branches that points to the head
+	branches=($(echo $branchName | grep -Eo 'origin/[A-Za-z0-9_-]+'))
+}
+
+Commit(){
+	# commit and push latest build.config changes
+	git commit -a -m "Increased release version - %env.AppVersion%"
+	# create new temp branch for new commit
+	git branch TempCIBranch
+	# remove origin prefix
+	localBranch=$(GetLocalBranch $1)
+	# remove origin prefix
+	git checkout $localBranch
+	git branch -v
+
+	# merge new local branch to target local branch
+	git merge TempCIBranch
+
+	# push target local branch to the remote
+	git push -u %env.RepositorySSHAddress% $localBranch
+	# remove temp branch
+	git branch -d TempCIBranch
+}
+
+
+Merge(){
+	# checkout local master branch
+	git checkout %env.LocalMasterBranchName%
+
+	# remove origin prefix
+	localBranch=$(GetLocalBranch $1)
+
+	# merge target local branch to local master branch
+	git merge $localBranch
+	# push master branch to the remote
+	git push -u %env.RepositorySSHAddress% %env.LocalMasterBranchName%
+}
+
+GetLocalBranch(){
+	echo $(echo $1 | sed -E 's/origin\/([A-Za-z0-9_]+)/\1/g')
+}
+
+containsElement () {
+  local e match="$1"
+  shift
+  for e; do [[ "$e" == "$match" ]] && return 0; done
+  return 1
+}
+
+# skip any action if true
+if [[ %env.SkipRelease% = 'true' ]]
+then
+	echo No release tag found, skip step
+    exit 0
+fi
+
+#fetch to get all remotes, since step clear everything from checkout directory
+git fetch
+
+#get branches that point to the head
+GetBranches
+
+# if branches more then 1, check array for deafult branch
+if [[ "${#branches[@]}" > 1 ]]
+then
+	echo "More than one branch"
+	containsElement "origin/%env.LocalMasterBranchName%" "${branches[@]}"
+	haveMasterBranch=$?
+
+	if [[ $haveMasterBranch = 0 ]]
+	then
+		echo "Tag already on master branch. Skip Process"
+		echo "##teamcity[setParameter name='env.SkipRelease' value='true']"	
+		exit 0
+	fi
+
+	# if contains default branch, then we can work with default branch
+	containsElement "%env.DefaultReleaseBranchName%" "${branches[@]}"
+	result=$?
+	echo $result
+
+	if [[ $result = 0 ]]
+	then
+		echo "Default branch found"
+		# process default branch
+		Commit %env.DefaultReleaseBranchName%
+		Merge %env.DefaultReleaseBranchName%
+	else
+		echo "Default branch not found. Skip Process"
+		echo "##teamcity[setParameter name='env.SkipRelease' value='true']"	
+		exit 0
+	fi
+else
+	Commit ${branches[0]}
+	Merge ${branches[0]}
+fi
