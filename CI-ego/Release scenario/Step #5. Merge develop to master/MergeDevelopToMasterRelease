@@ -33,8 +33,17 @@ Commit(){
 
 	# push target local branch to the remote
 	git push -u %env.RepositorySSHAddress% $localBranch
+	exit_code=$?
+
 	# remove temp branch
 	git branch -d TempCIBranch
+
+	if [[ $exit_code != 0 ]]
+	then	
+		echo "Exit code - $exit_code"
+		echo "##teamcity[setParameter name='env.SkipRelease' value='true']"
+	fi
+
 }
 
 
@@ -49,6 +58,12 @@ Merge(){
 	git merge $localBranch
 	# push master branch to the remote
 	git push -u %env.RepositorySSHAddress% %env.LocalMasterBranchName%
+	exit_code=$?
+	if [[ $exit_code != 0 ]]
+	then	
+		echo "Exit code - $exit_code"
+		echo "##teamcity[setParameter name='env.SkipRelease' value='true']"
+	fi
 }
 
 GetLocalBranch(){
@@ -75,19 +90,21 @@ git fetch
 #get branches that point to the head
 GetBranches
 
+#if commit is in master already - skip process
+containsElement "origin/%env.LocalMasterBranchName%" "${branches[@]}"
+haveMasterBranch=$?
+
+if [[ $haveMasterBranch = 0 ]]
+then
+	echo "Tag already on master branch. Skip Process"
+	echo "##teamcity[setParameter name='env.SkipRelease' value='true']"
+	exit 0
+fi
+
 # if branches more then 1, check array for deafult branch
 if [[ "${#branches[@]}" > 1 ]]
 then
 	echo "More than one branch"
-	containsElement "origin/%env.LocalMasterBranchName%" "${branches[@]}"
-	haveMasterBranch=$?
-
-	if [[ $haveMasterBranch = 0 ]]
-	then
-		echo "Tag already on master branch. Skip Process"
-		echo "##teamcity[setParameter name='env.SkipRelease' value='true']"	
-		exit 0
-	fi
 
 	# if contains default branch, then we can work with default branch
 	containsElement "%env.DefaultReleaseBranchName%" "${branches[@]}"

@@ -1,0 +1,21 @@
+#!/bin/bash
+# Input:
+# %env.ReleaseApkName% : release name that will 
+# %env.SkipRelease%: skip release process
+# %env.AppPreviousVersion% : previous app's version 
+# %env.ApkPath% : path to apk
+# Output:
+# %env.ReleaseApkFinalName% : result app name
+
+# skip any action if true
+if [[ %env.SkipRelease% = 'true' ]]
+then
+	echo 'No release tag found, skip step'
+    exit 0
+fi
+
+newName=$(echo "%env.ReleaseApkName%-%env.AppPreviousVersion%" | sed 's/\./-/g')
+finalName=${newName}.apk
+mv %env.ApkPath%/%env.ApkName% %env.ApkPath%/$finalName
+echo Renamed to - $finalName
+echo "##teamcity[setParameter name='env.ReleaseApkFinalName' value='"$finalName"']"

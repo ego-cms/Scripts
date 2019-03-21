@@ -1,0 +1,26 @@
+#!/bin/bash
+# Input:
+# %env.MajorVersionText%: name for major version js tag										| version_major 
+# %env.MinorVersionText%: name for minor version js tag										| version_minor
+# %env.MajorVersionPattern%: regexp pattern for major version js value						| [.0-9]*
+# %env.MinorVersionPattern%: regexp pattern for minor version js value						| [.0-9]*
+# %env.BuildConfigFilename%: name of file with version values								| build.config
+# %env.SkipRelease%: skip release process
+# Output
+# %env.AppVersion%: new app version name
+
+# skip any action if true
+if [[ %env.SkipRelease% = 'true' ]]
+then
+	echo 'No release tag found, skip step'
+    exit 0
+fi
+
+# get major version number
+versionMajor=$(sed -n "s/\"%env.MajorVersionText%\":\"\(%env.MajorVersionPattern%\)\",*/\1/p" %env.BuildConfigFilename% | sed -n 's/^ *//p')
+# get minor version number
+versionMinor=$(sed -n "s/\"%env.MinorVersionText%\":\"\(%env.MinorVersionPattern%\)\",*/\1/p" %env.BuildConfigFilename% | sed -n 's/^ *//p')
+# concatenate them
+version=$versionMajor.$versionMinor
+# set version global variable
+echo "##teamcity[setParameter name='env.AppPreviousVersion' value='"$version"']"

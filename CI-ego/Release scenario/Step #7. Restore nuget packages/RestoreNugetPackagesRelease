@@ -1,0 +1,7 @@
+if [[ %env.SkipRelease% = 'true' ]]
+then
+    exit 0
+fi
+
+export PATH="$PATH:/Library/Frameworks/Mono.framework/Versions/Current/Commands"
+nuget restore %teamcity.build.checkoutDir%/%env.SolutionName% -PackagesDirectory %teamcity.build.checkoutDir%/packages
