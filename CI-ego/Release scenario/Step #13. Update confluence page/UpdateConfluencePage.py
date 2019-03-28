@@ -1,7 +1,8 @@
 # Input:
-# %env.JiraUrl% : url path for jira			                                                        || https://test.atlassian.net
+# %env.JiraUrl% : url path for jira                                                                 || https://test.atlassian.net
 # %env.JiraBotMailAddress% : email address for user which will interact with jira                   || test@ego-cms.com
-# %env.JiraBotApiToken% : api token for user which will interact with jira 							|| Abababagalamaga
+# %env.JiraBotApiToken% : api token for user which will interact with jira                          || Abababagalamaga
+# %env.ConfluencePageNumber% : confluence page with list of builds							        ||
 
 import json
 import requests

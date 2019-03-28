@@ -1,9 +1,9 @@
 # Input
-# %env.ProjectId% : Jira project id  																	|| 1000
+# %env.ProjectId% : Jira project id                                                                     || 1000
 # %env.AppVersion% : new app version
-# %env.JiraUrl% : url path for jira 																	|| https://test.atlassian.net
-# %env.JiraBotMailAddress% : email address for user which will interact with jira  						|| test@ego-cms.com
-# %env.JiraBotApiToken% : api token for user which will interact with jira 								|| Abababagalamaga
+# %env.JiraUrl% : url path for jira                                                                     || https://test.atlassian.net
+# %env.JiraBotMailAddress% : email address for user which will interact with jira                       || test@ego-cms.com
+# %env.JiraBotApiToken% : api token for user which will interact with jira                              || Abababagalamaga
 
 import requests
 import sys
