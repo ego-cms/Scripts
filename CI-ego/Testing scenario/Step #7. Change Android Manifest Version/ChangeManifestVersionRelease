@@ -92,7 +92,7 @@ ChangeManifestName(){
 # skip any action if true
 if [[ %env.SkipTesting% = 'true' ]]
 then
-	echo 'No release tag found, skip step'
+	echo 'No testing tag found, skip step'
     exit 0
 fi
 

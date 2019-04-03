@@ -1,7 +1,7 @@
 #!/bin/bash
 # Variables:
-# %env.JiraUrl% : url path for jira  
-# %env.JiraBotMailAddress% : email address for user which will interact with jira  
+# %env.JiraUrl% : url path for jira
+# %env.JiraBotMailAddress% : email address for user which will interact with jira
 # %env.JiraBotApiToken% : api token for user which will interact with jira 
 # %env.BuildServerUrl% : Build server's url
 # %teamcity.build.id% : build id

@@ -1,0 +1,13 @@
+#!/bin/bash
+# Input:
+# %env.SonarQubeToken% : sonarqube token for api calls
+
+# skip any action if true
+if [[ %env.SkipRelease% = 'true' ]]
+then
+	echo 'No release tag found, skip step'
+    exit 0
+fi
+
+chmod +x /Users/mac/Library/TeamCity/buildAgent/tools/scanner-msbuild/bin/sonar-scanner-3.2.0.1227/bin/sonar-scanner
+mono /Users/mac/Library/TeamCity/buildAgent/tools/scanner-msbuild/bin/SonarScanner.MSBuild.exe end /d:sonar.login="%env.SonarQubeToken%"

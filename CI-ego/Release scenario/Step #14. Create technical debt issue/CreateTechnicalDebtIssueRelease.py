@@ -12,6 +12,9 @@
 import requests
 import json
 import threading
+import re
+import sys
+from datetime import datetime, timedelta
 
 
 class IssueModel:
@@ -20,8 +23,24 @@ class IssueModel:
         self.message = message
 
 
+# Model for sonarqube project analysis
+class ProjectAnalysisModel:
+    def __init__(self, date, version):
+        self.date = date
+        self.version = version
+
+
 def main():
-    data = get_data()
+    analyses = get_project_analyses()
+
+    release_analysis = find_last_release_analysis(analyses)
+
+    print("\n" + release_analysis.date + " " + release_analysis.version)
+
+    # since_date = get_exclusive_analysis_date(release_analysis.date)
+    since_date = release_analysis.date
+
+    data = get_data(since_date)
     models = parse_data(data)
     if len(models) > 0:
         issue_type_id = get_issue_type_id()
@@ -31,10 +50,54 @@ def main():
         print("New issues not found")
 
 
-def get_data():
+# def get_exclusive_analysis_date(date):
+#     date_posted = date
+#     result = datetime.strptime(date_posted, '%Y-'+'%m-'+'%dT'+'%H:'+'%M:'+'%S+0000')
+#     new_date = result + timedelta(0, 1)
+#     return new_date.strftime('%Y-'+'%m-'+'%dT'+'%H:'+'%M:'+'%S+0000')
+
+
+def find_last_release_analysis(analyses):
+    for item in analyses:
+        if re.match("^\d+\.\d+$", item.version) is not None:
+            return item
+
+
+def get_project_analyses():
+    # -2 min from now
+    to_date = datetime.utcnow() + timedelta(0, 60 * -2)
+    to_date_str = to_date.strftime('%Y-'+'%m-'+'%dT'+'%H:'+'%M:'+'%S+0000')
+
+    params = (
+        ('project', '%env.SonarQubeProjectName%'),
+        ('category', 'VERSION'),
+        ('to', to_date_str),
+    )
+
+    response = requests.get('%env.SonarQubeUrl%/api/project_analyses/search', params=params,
+                            auth=('%env.SonarQubeToken%', ''))
+
+    # print(json.dumps(response.json(), sort_keys=True, indent=4, separators=(",", ": ")))
+
+    model_items = []
+    for data_item in response.json()["analyses"]:
+        item_date = data_item["date"]
+        item_version = ""
+        for event_item in data_item["events"]:
+            if event_item["category"] == "VERSION":
+                item_version = event_item["name"]
+        model_item = ProjectAnalysisModel(item_date, item_version)
+        model_items.append(model_item)
+
+
+    return model_items
+
+
+def get_data(sinceDate):
     params = (
         ('componentKeys', '%env.SonarQubeProjectName%'),
-        ('sinceLeakPeriod', 'yes'),
+        ('createdAfter', sinceDate),
+        ('statuses', 'OPEN')
     )
 
     response = requests.get('%env.SonarQubeUrl%/api/issues/search', params=params, auth=('%env.SonarQubeToken%', ''))
@@ -151,6 +214,9 @@ def get_current_version_id():
 
 
 if "%env.SkipRelease%" == "true":
+    sys.exit()
+
+if "%env.IsBuildFailed%" == "true":
     sys.exit()
 
 timer = threading.Timer(5.0, main)
