@@ -7,10 +7,10 @@
 # %env.IsMinorRelease%: type of release is minor
 # %env.SkipRelease%: skip release process
 
-
-tag=$(git describe --abbrev=0)
+head=$(git rev-parse HEAD)
+echo HEAD - $head
+tag=$(git show-ref --tags -d | grep ^"$head" | sed -e 's,.* refs/tags/,,' -e 's/\^{}//')
 echo Tag - $tag
-
 # check if git tag has %env.ReleaseMinorPattern% 
 isMinorRelease=$(echo $tag | egrep -o "%env.ReleaseMinorPattern%")
 # check if git tag has %env.IsMajorRelease% 
